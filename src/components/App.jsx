@@ -12,38 +12,21 @@ export const App = () => {
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(1);
-  const [showLoadMoreButton, setShowLoadMoreButton] = useState(true);
+  const [totalImages, setTotalImages] = useState(0);
   const [searchFailed, setSearchFailed] = useState(false);
 
   useEffect(() => {
+    if (!query) return;
     async function getQuery() {
-      if (!query) {
-        return;
-      }
       try {
         setLoading(true);
         setError(false);
 
         const { hits, totalHits } = await fetchImages(query, page);
+        if (!totalHits) return setSearchFailed(true);
 
-        const filteredNeedsValues = () => {
-          setImages(
-            prevState => [...prevState, ...hits],
-            setShowLoadMoreButton(false)
-          );
-        };
-
-        if (page === Math.ceil(totalHits / 12)) {
-          filteredNeedsValues();
-          return;
-        }
-
-        if (hits.length === 0) {
-          setSearchFailed(true);
-        }
-
-        filteredNeedsValues();
-        setShowLoadMoreButton(true);
+        setImages(prevState => [...prevState, ...hits]);
+        setTotalImages(totalHits);
       } catch (error) {
         setError(true);
       } finally {
@@ -57,7 +40,7 @@ export const App = () => {
     setQuery(item);
     setImages([]);
     setPage(1);
-    setError(false);
+    setTotalImages(0);
   };
 
   const handleLoadMore = () => {
@@ -67,7 +50,6 @@ export const App = () => {
   return (
     <div>
       <SearchBar onSubmit={handleSubmit} />
-      {loading && <Loader />}
       {images.length > 0 && <ImageGallery hits={images} />}
       {searchFailed && images.length === 0 && !loading && (
         <ErrorMsg>
@@ -77,9 +59,10 @@ export const App = () => {
       {error && !loading && (
         <ErrorMsg>❌ Something went wrong,try reload page</ErrorMsg>
       )}
-      {images.length > 0 && showLoadMoreButton && !loading && (
+      {images.length !== totalImages && !loading && (
         <ButtonLoadMore loadMore={handleLoadMore} />
       )}
+      {loading && <Loader />}
     </div>
   );
 };
